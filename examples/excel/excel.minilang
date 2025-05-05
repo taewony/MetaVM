@@ -1,0 +1,30 @@
+// excel.minilang
+// Three excel file merge, pivot, and visualize task specification
+
+// Load data from three separate CSV files
+// Replace "path/to/your/fileX.csv" with the actual file paths
+let file1_data = load_excel("./file1.xlsx")
+let file2_data = load_excel("./file2.xlsx")
+let file3_data = load_excel("./file3.xlsx")
+
+// Merge the loaded dataframes into a single dataframe
+// The concat_dataframes function takes a list of dataframes
+let merged_data = concat_dataframes([file1_data, file2_data, file3_data])
+
+// Create a pivot table from the merged data
+// Use keyword arguments for index, columns, values, and aggregation function
+// Replace 'Category', 'SubCategory', 'Value' with actual column names from your data
+let pivot_table = create_pivot(
+    merged_data,
+    index="Category",       // Column(s) to use as the index (rows)
+    columns="SubCategory",  // Column(s) to use as the columns
+    values="Value",         // Column(s) to use for aggregation
+    aggfunc="sum"           // Aggregation function (e.g., "sum", "mean", "count")
+)
+
+// Visualize statistics for the resulting pivot table
+// This function is assumed to handle the visualization based on the pivot table data
+visualize_pivot_stats(pivot_table)
+
+// Optional: Print the resulting pivot table
+// print(pivot_table)

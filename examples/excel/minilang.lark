@@ -1,0 +1,66 @@
+// minilang.lark - Extended for Excel Merge, Pivot, Visualize
+
+// Ignore single-line comments starting with //
+COMMENT: /\/\/[^\n]*/
+%ignore COMMENT
+
+// Ignore whitespace, tabs, and newlines
+%import common.WS
+%ignore WS
+%import common.NEWLINE
+%ignore NEWLINE
+
+// The program starts with one or more statements
+?start: stmt+
+
+// Types of statements
+?stmt: let_stmt         // Variable assignment (e.g., let data = ...)
+     | print_stmt       // Print statement (e.g., print expr)
+     | call_stmt        // Standalone function call (e.g., visualize_...)
+
+// Variable assignment statement
+let_stmt: "let" NAME "=" expr
+
+// Print statement
+print_stmt: "print" expr
+
+// Standalone function call statement
+call_stmt: call
+
+// Expressions - things that evaluate to a value
+?expr: call             // Function call as an expression
+     | list             // List literal
+     | STRING -> string // String literal
+     | NAME -> var      // Variable reference
+     | NUMBER -> number // Number literal
+     | dictionary       // Dictionary literal (useful for configs, like in LLM example)
+
+// Function call structure: NAME ( [arguments] )
+call: NAME "(" [args] ")"
+
+// Arguments list for function calls, comma-separated
+args: argument ("," argument)* [","] // Optional trailing comma
+
+// An argument can be a positional expression or a keyword argument
+?argument: expr
+         | keyword_argument
+
+// Keyword argument: name = expression
+keyword_argument: NAME "=" expr
+
+// List literal: [ [expressions] ]
+// Allows any expression inside the list
+list: "[" [expr ("," expr)*] [","] "]"
+
+// Dictionary literal: { [key=value pairs] }
+// Keys are names, values are expressions
+dictionary: "{" [key_value_pair ("," key_value_pair)*] [","] "}"
+key_value_pair: NAME "=" expr
+
+// Token definitions imported from common Lark library
+%import common.CNAME          -> NAME         // Common Name (identifiers)
+%import common.ESCAPED_STRING -> STRING       // String literals ("..." or '...')
+%import common.NUMBER         -> NUMBER       // Numbers (integers, floats)
+
+// Note: Adding dictionary and keyword_argument rules makes the grammar flexible
+// enough for the LLM example's config sections and function calls as well.
