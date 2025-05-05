@@ -1,0 +1,24 @@
+{
+  "name": "jupyterlab-meta-vm-extension",
+  "version": "0.1.0",
+  "description": "A minimal JupyterLab extension",
+  "main": "build/index.js",
+  "scripts": {
+    "build": "webpack --mode production --config webpack.config.js"
+  },
+  "jupyterlab": {
+    "extension": true
+  },
+  "dependencies": {
+    "@jupyterlab/application": "^4.4.1",
+    "@jupyterlab/fileeditor": "^4.4.1",
+    "tslib": "^2.8.1"
+  },
+  "devDependencies": {
+    "raw-loader": "^4.0.2",
+    "ts-loader": "^9.5.2",
+    "typescript": "^5.8.3",
+    "webpack": "^5.99.7",
+    "webpack-cli": "5"
+  }
+}

@@ -1,0 +1,4 @@
+// Titanic CSV 로드 및 통계 분석 예제
+
+let data = load_csv("titanic.csv")
+print stats(data, ["mean", "std", "50%"])

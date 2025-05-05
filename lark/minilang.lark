@@ -1,0 +1,14 @@
+start: (datablock | transform | printblock)+
+
+datablock: "DataSource" ":" NAME "{" load_stmt "}" -> datasource
+load_stmt: "load_csv" "(" STRING ")" 
+
+transform: "Transform" ":" NAME "{" "input" "=" NAME "\n" "metrics" "=" list "}" -> transform
+printblock: "Print" ":" NAME "{" "title" "=" STRING "\n" "format" "=" ("table"|"chart") "\n" "data" "=" NAME "}" -> printblock
+
+list: "[" [STRING ("," STRING)* "]"
+STRING: /"([^"]*)"/
+NAME: /[a-zA-Z_][a-zA-Z0-9_]*/
+
+// 공백 및 개행 처리 추가
+%ignore /[\s]+/  // 모든 공백(스페이스, 탭, 개행) 무시
