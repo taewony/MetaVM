@@ -64,14 +64,14 @@ MetaVM은 사용자 의도에 기반한 MiniLang 코드 생성 및 실행, 피�
 사용자의 작업 의도를 파악하고 MiniLang 코드로 변환하는 역할을 수행하는 프론트엔드 역할의 서버입니다.
 
 * **주요 역할:**
-  * 사용자(인간 개발자)의 CLI / 웹 UI 요청 수신
+  * 사용자(인간 개발자)의 웹 UI 요청 수신
   * 범용 LLM (예: GPT-4 API) 및 미세조정된 경량 LLM과 협력하여 사용자의 자연어 요청을 MiniLang 코드로 변환
   * 작성된 MiniLang 코드 및 작업 명세를 엔진 서버로 전송
   * 엔진 서버의 실행 결과를 사용자에게 반환
   * 로그 서버로부터 수집된 실행 데이터를 바탕으로 LLM 또는 코드 템플릿 개선 작업 수행 (예: 프롬프트 개선, 코드 생성 전략 업데이트 등)
 
 * **기능 구성:**
-  * 사용자 인터페이스 (CLI / Web UI)
+  * 사용자 인터페이스 (JupyterLab 기반 Web UI)
   * LLM 연동 모듈 (범용 API + Fine-tuned 로컬 LLM)
   * 로그 분석 기반 최적화 모듈
 
@@ -83,12 +83,13 @@ MiniLang 코드를 실행하고 로그를 생성하는 백엔드 실행 서버�
   * 내부 IR (SGR-ML → LIR-ML) 기반 파싱 및 실행
   * 실행 과정에서 발생하는 메트릭과 로그를 로깅 서버로 전달
   * 협업 서버와 stateless API 형태로 연동
+  * 사용자(인간 개발자)의 CLI / REPL 기반 (MiniLang 코드로 표현된) 요청 수신 
 
 * **서브 시스템 구성:**
   * **Executor:** MiniLang 구문 분석 및 실행기
   * **IR Translator:** MiniLang → SGR-ML → (선택적) LIR-ML 변환
   * **Metrics Collector:** 성능 지표 및 실행 로그 수집
-  * **REPL CLI (개발 및 테스트용):** 직접 MiniLang 스크립트 실행 지원
+  * **CLI/REPL (개발 및 테스트용):** 직접 MiniLang 스크립트 실행 지원
 
 ### 3. 로그 서버 (**Logging Server**)
 엔진 서버에서 수집한 실행 로그와 성능 지표를 저장, 관리, 분석하는 서버입니다.
@@ -203,6 +204,35 @@ MiniLang 코드를 실행하고 로그를 생성하는 백엔드 실행 서버�
 
 ---
 
+## 📊 시스템 다이어그렘
+```mermaid
+sequenceDiagram
+    participant User as 사용자
+    participant CollabServer as 협업 서버
+    participant EngineServer as 엔진 서버
+    participant LoggingServer as 로깅 서버
+
+    User->>CollabServer: 1. 작업 요청 (자연어/명령어)
+    CollabServer->>CollabServer: 2. MiniLang 변환 (LLM 활용)
+    CollabServer->>EngineServer: 3. MiniLang 명세서 전송
+    EngineServer->>EngineServer: 4. 실행 (IR 변환 및 처리)
+    EngineServer->>LoggingServer: 5. 로그/성능 데이터 저장
+    EngineServer-->>CollabServer: 6. 실행 결과 반환
+    CollabServer->>User: 7. 결과 출력 (시각화/텍스트)
+    Note right of CollabServer: 주기적 로그 분석 → 성능/효과 전략 개선
+```
+---
+
+## 📊 MetaVM vs MCP
+| 항목         | MetaVM                                                 | MCP 방식                               |
+| ---------- | ------------------------------------------------------ | ------------------------------------ |
+| **철학**     | 인간 의도를 추상 언어(MiniLang)로 표현하고, 그것을 해석·실행하는 **가상 머신 모델** | LLM이 인간을 대신해 **도구를 직접 조작**           |
+| **목표**     | **사고-표현-실행**의 분리와 구조화                                  | **실행 자동화** 중심으로 질문-응답 과정을 생략         |
+| **주요 서비스** | 범용 CaaS(Compute as a Service) OS 또는 VM 같은 역할             | 앱 조작 자동화 에이전트 (e.g., 자동 비서, 자동 디자이너) |
+| **장기 확장성** | MiniLang을 도메인별로 확장 가능                                  | 앱이 제공하는 API의 범위에 따라 제한               |
+
+---
+
 ## 🔗 기여 방법
 
 * Pull Request는 언제나 환영합니다! 기여 가이드라인(TODO: 링크 추가)을 참고해주세요.
@@ -214,8 +244,5 @@ MiniLang 코드를 실행하고 로그를 생성하는 백엔드 실행 서버�
 
 ## 📃 라이선스
 
-MIT License
+- MIT License
 =======
-# MetaVM
-AI native (통합/협업 지원) MetaVM IDE 및 실행엔진
-
