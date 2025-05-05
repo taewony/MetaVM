@@ -215,3 +215,7 @@ MiniLang 코드를 실행하고 로그를 생성하는 백엔드 실행 서버�
 ## 📃 라이선스
 
 MIT License
+=======
+# MetaVM
+AI native (통합/협업 지원) MetaVM IDE 및 실행엔진
+
