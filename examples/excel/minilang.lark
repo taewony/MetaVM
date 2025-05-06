@@ -1,66 +1,75 @@
-// minilang.lark - Extended for Excel Merge, Pivot, Visualize
+// minilang.lark - 충돌 해결 버전
 
-// Ignore single-line comments starting with //
+// 주석 무시
 COMMENT: /\/\/[^\n]*/
 %ignore COMMENT
 
-// Ignore whitespace, tabs, and newlines
-%import common.WS
-%ignore WS
-%import common.NEWLINE
-%ignore NEWLINE
+// 공백, 탭 무시 (개행은 _EOL로 처리)
+%import common.WS_INLINE
+%ignore WS_INLINE
 
-// The program starts with one or more statements
-?start: stmt+
+// 문장 종료: 하나 이상의 개행 또는 세미콜론 (명시적으로 사용)
+_EOL: /(\r?\n)+/ | ";"
 
-// Types of statements
-?stmt: let_stmt         // Variable assignment (e.g., let data = ...)
-     | print_stmt       // Print statement (e.g., print expr)
-     | call_stmt        // Standalone function call (e.g., visualize_...)
+// 프로그램 시작: 0개 이상의 문장 또는 EOL 허용 (REPL 및 빈 줄 처리 용이)
+start: (_EOL | stmt)*
 
-// Variable assignment statement
+// 문장 종류
+?stmt: let_stmt
+     | print_stmt
+     | expr       // 표현식 자체가 문장 (독립적인 함수 호출 포함)
+
+// 변수 할당문 (_EOL은 start 규칙에서 처리)
 let_stmt: "let" NAME "=" expr
 
-// Print statement
-print_stmt: "print" expr
+// 출력문 (괄호 선택 사항, _EOL은 start 규칙에서 처리)
+print_stmt: "print" "("? expr ")"?
 
-// Standalone function call statement
-call_stmt: call
+// --- 표현식 규칙 (이전과 동일) ---
+?expr: arithmetic_expr
 
-// Expressions - things that evaluate to a value
-?expr: call             // Function call as an expression
-     | list             // List literal
-     | STRING -> string // String literal
-     | NAME -> var      // Variable reference
-     | NUMBER -> number // Number literal
-     | dictionary       // Dictionary literal (useful for configs, like in LLM example)
+// 덧셈/뺄셈 (우선순위 낮음, 좌측 결합)
+?arithmetic_expr: arithmetic_expr "+" term -> add
+                | arithmetic_expr "-" term -> sub
+                | term
 
-// Function call structure: NAME ( [arguments] )
+// 곱셈/나눗셈 (우선순위 높음, 좌측 결합)
+?term: term "*" factor -> mul
+     | term "/" factor -> div
+     | factor
+
+// 기본 요소 (Factor)
+?factor: call             // 함수 호출 결과
+       | list             // 리스트 리터럴
+       | STRING -> string // 문자열 리터럴
+       | NAME -> var      // 변수 참조
+       | NUMBER -> number // 숫자 리터럴
+       | dictionary       // 딕셔너리 리터럴
+       | "(" expr ")"     // 괄호 (괄호 안에는 모든 종류의 표현식 가능)
+
+// --- 함수 호출, 리스트, 딕셔너리 등 (이전과 동일) ---
+
+// 함수 호출 구조: NAME ( [arguments] )
 call: NAME "(" [args] ")"
 
-// Arguments list for function calls, comma-separated
-args: argument ("," argument)* [","] // Optional trailing comma
+// 함수 인자 목록, 콤마로 구분
+args: argument ("," argument)* [","] // 마지막 콤마 허용
 
-// An argument can be a positional expression or a keyword argument
+// 인자: 위치 인자(표현식) 또는 키워드 인자
 ?argument: expr
          | keyword_argument
 
-// Keyword argument: name = expression
+// 키워드 인자: name = expression
 keyword_argument: NAME "=" expr
 
-// List literal: [ [expressions] ]
-// Allows any expression inside the list
+// 리스트 리터럴: [ [expressions] ]
 list: "[" [expr ("," expr)*] [","] "]"
 
-// Dictionary literal: { [key=value pairs] }
-// Keys are names, values are expressions
+// 딕셔너리 리터럴: { [key=value pairs] }
 dictionary: "{" [key_value_pair ("," key_value_pair)*] [","] "}"
-key_value_pair: NAME "=" expr
+key_value_pair: NAME "=" expr // 키는 NAME 토큰, 값은 표현식
 
-// Token definitions imported from common Lark library
-%import common.CNAME          -> NAME         // Common Name (identifiers)
-%import common.ESCAPED_STRING -> STRING       // String literals ("..." or '...')
-%import common.NUMBER         -> NUMBER       // Numbers (integers, floats)
-
-// Note: Adding dictionary and keyword_argument rules makes the grammar flexible
-// enough for the LLM example's config sections and function calls as well.
+// --- 터미널 정의 (이전과 동일) ---
+%import common.CNAME           -> NAME
+%import common.ESCAPED_STRING  -> STRING
+%import common.SIGNED_NUMBER   -> NUMBER

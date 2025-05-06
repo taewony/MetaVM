@@ -1,11 +1,11 @@
 // excel.minilang
-// Three excel file merge, pivot, and visualize task specification
+// Three CSV file merge, pivot, and visualize task specification
 
 // Load data from three separate CSV files
 // Replace "path/to/your/fileX.csv" with the actual file paths
-let file1_data = load_excel("./file1.xlsx")
-let file2_data = load_excel("./file2.xlsx")
-let file3_data = load_excel("./file3.xlsx")
+let file1_data = load_csv("./file1.csv")
+let file2_data = load_csv("./file2.csv")
+let file3_data = load_csv("./file3.csv")
 
 // Merge the loaded dataframes into a single dataframe
 // The concat_dataframes function takes a list of dataframes
@@ -14,12 +14,13 @@ let merged_data = concat_dataframes([file1_data, file2_data, file3_data])
 // Create a pivot table from the merged data
 // Use keyword arguments for index, columns, values, and aggregation function
 // Replace 'Category', 'SubCategory', 'Value' with actual column names from your data
-let pivot_table = create_pivot(
-    merged_data,
-    index="Category",       // Column(s) to use as the index (rows)
-    columns="SubCategory",  // Column(s) to use as the columns
-    values="Value",         // Column(s) to use for aggregation
-    aggfunc="sum"           // Aggregation function (e.g., "sum", "mean", "count")
+// Using '\' for line continuation in the REPL's line-by-line mode
+let pivot_table = create_pivot( \
+    merged_data, \
+    index="Category", \
+    columns="SubCategory", \
+    values="Value", \
+    aggfunc="sum" \
 )
 
 // Visualize statistics for the resulting pivot table
