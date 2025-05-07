@@ -1,0 +1,21 @@
+?start: stmt+
+
+?stmt: expr                           -> eval_only
+     | "print" "(" expr ")"           -> eval_and_print
+     | "let" NAME "=" expr            -> let_stmt
+
+?expr: term ((ADD | SUB) term)*       -> expr
+?term: factor ((MUL | DIV) factor)*   -> term
+?factor: INT                          -> number
+       | NAME                         -> var
+       | "(" expr ")"                 -> factor
+
+ADD: "+"
+SUB: "-"
+MUL: "*"
+DIV: "/"
+
+%import common.INT
+%import common.WS
+%import common.CNAME -> NAME
+%ignore WS

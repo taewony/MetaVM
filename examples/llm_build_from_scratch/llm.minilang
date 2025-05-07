@@ -1,0 +1,59 @@
+@intent("CPU/GPU 통합 실행환경에서 LLM build from scratch")
+@parallel(type="hybrid", cpu_workers=8, gpu_streams=4)
+
+# 1. 데이터 준비 파이프라인
+block DataPipeline:
+    inputs: text_files/*.txt
+    outputs: tokenized_batches
+    
+    let corpus = load_text(text_files)
+    let tokenizer = BPETokenizer(vocab_size=50000)
+    let batches = tokenizer.encode(corpus).to_gpu()
+    >> shuffle().batch(256).prefetch()
+
+# 2. 트랜스포머 아키텍처
+block Transformer:
+    @kernel(cuda=True, tile_size=128)
+    def attention(Q, K, V):
+        # cuTILE 기반 커스텀 커널
+        scores = ml.einsum("bhid,bhjd->bhij", Q, K)
+        return ml.softmax(scores) @ V
+
+    def forward(x):
+        for _ in range(12):
+            x = ml.layer_norm(x + attention(x, x, x))
+            x = ml.layer_norm(x + ml.mlp(x))
+        return x
+
+# 3. 학습 루프
+block Training:
+    requires: DataPipeline.out, Transformer
+    
+    let model = Transformer().to("cuda:0")
+    let opt = ml.Adam(model.params(), lr=3e-4)
+    
+    pipeline:
+        for epoch in 1..100:
+            data = DataPipeline.next_batch()
+            logits = model(data)
+            loss = ml.cross_entropy(logits, data.labels)
+            
+            <<backward>> loss
+            opt.step()
+            opt.zero_grad()
+            
+            @gpu_mem_guard(threshold="80%")
+            if loss < 1.0:
+                save_model(model)
+
+# 4. 실행 및 모니터링
+pipeline llm_train:
+    DataPipeline() 
+    => Training()
+    >> ml.distributed(allreduce=True)
+    ~~> RealTimePlotter(metrics=["loss", "perplexity"])
+    
+execution_context:
+    mixed_precision: bfloat16
+    gradient_accumulation: 4
+    profiler: nsight

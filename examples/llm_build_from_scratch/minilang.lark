@@ -1,0 +1,66 @@
+%import common.CNAME
+%import common.NUMBER
+%import common.ESCAPED_STRING
+%import common.WS
+%import common.NEWLINE -> _NL // Renamed NEWLINE to _NL
+
+%ignore WS // Ignores spaces and tabs
+
+// Define EOS (End Of Statement) explicitly as a semicolon
+EOS: ";"
+
+// Statements
+?program: statement* end_of_program
+end_of_program: EOS | "$END" // Program ends with ; or the end of input
+
+?statement: assignment _statement_end
+          | print_statement _statement_end
+          | expression_statement _statement_end
+          | _NL -> empty_statement // An empty line is a statement that ends itself
+
+_statement_end: _NL | EOS // Statements end with a newline or explicit EOS (semicolon)
+
+expression_statement: expression // Expression statement is just the expression itself
+
+// Define the assignment and print_statement rules
+assignment: "let" CNAME "=" expression // Use the literal string "let"
+print_statement: PRINT "(" expression ")"
+
+
+// Basic Expressions (Arithmetic, Literals, Variables, Calls)
+?expression: arithmetic_expression
+
+?arithmetic_expression: term (("+"|"-") term)*
+?term: factor (("*"|"/"|"%") factor)*
+?factor: power | unary_op factor
+?power: atom_expression ("**" factor)?
+
+unary_op: "-" | "+" | "!"
+
+atom_expression: "(" expression ")" | primary_expression
+primary_expression: literal | CNAME | call_expression
+
+// Literals
+literal: string_literal | number_literal | boolean_literal | none_literal | list_literal | dict_literal
+string_literal: ESCAPED_STRING
+number_literal: NUMBER
+boolean_literal: "True" | "False"
+none_literal: "None"
+
+// Collections
+list_literal: "[" [expression ("," expression)*] "]"
+dict_literal: "{" [dict_entry ("," dict_entry)*] "}"
+dict_entry: (string_literal | CNAME) ":" expression // Allow CNAME as string key implicitly
+
+// Function Calls
+call_expression: CNAME "(" [arguments] ")"
+arguments: arg ("," arg)*
+arg: expression | CNAME "=" expression // Positional or Keyword argument
+
+// Keywords and Terminals
+let_keyword: "let"
+print_keyword: "print"
+import_keyword: "import"
+
+// Assuming PRINT is defined as a TOKEN rule like:
+PRINT: "print"

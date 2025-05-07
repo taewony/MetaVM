@@ -1,0 +1,4 @@
+let x = 3 
+let y = 1003 
+print(y) 
+print(x *3)
