@@ -1,59 +1,70 @@
-// Ignore single-line comments starting with //
+// minilang_user_fixed.lark
+
+// Ignores single-line comments starting with //
 COMMENT: /\/\/[^\n]*/
 %ignore COMMENT
 
-// Ignore whitespace, tabs, and newlines
-%import common.WS
-%ignore WS
-%import common.NEWLINE
-%ignore NEWLINE
+// Ignores spaces and tabs on a line, but not newlines themselves
+%import common.WS_INLINE
+%ignore WS_INLINE
 
-?start: stmt+
+// Define a newline token that is significant for separating statements
+// Allows one or more newlines, potentially with spaces/tabs on the empty lines.
+_NL: /(\r?\n[\s\t]*)+/
 
-?stmt: expr                           -> eval_only
-     | "print" "(" expr ")"           -> eval_and_print
-     | "let" NAME "=" expr            -> let_stmt
+// Start rule: one or more statements.
+// Each statement is effectively ended by one or more newlines,
+// or it's the last statement potentially followed by zero or more newlines.
+// This structure ensures at least one statement.
+?start: (_NL? (stmt _NL+))+ stmt _NL* | stmt _NL*
 
-?expr: term ((ADD | SUB) term)*       -> expr
 
-?term: factor ((MUL | DIV) factor)*   -> term
-?factor: INT | NUMBER          -> number
-       | NAME                 -> var
-       | STRING               -> string
-       | call                 -> func_call   // 함수 호출 추가
-       | list                 -> list        // 리스트 추가
-       | "(" expr ")"         -> factor
+// Statement types
+?stmt: "let" NAME "=" expr         -> let_stmt         // Variable assignment
+     | "print" "(" expr ")"        -> print_stmt       // Print statement
+     | expr                        -> eval_stmt        // Expression as a statement (e.g., a function call for its side effect)
 
+// Expression hierarchy for operator precedence
+?expr: term ((ADD | SUB) term)* -> binary_op_expr // Addition and subtraction
+
+?term: factor ((MUL | DIV) factor)* -> binary_op_term // Multiplication and division
+
+// Factor can be a primary element or a parenthesized expression
+?factor: primaria
+       | "(" expr ")" // Parenthesized expression to override precedence
+
+// Primary elements of an expression
+?primaria: NUMBER                  -> number_literal // Numbers (integers and floats)
+         | NAME                    -> var_lookup     // Variable lookup
+         | STRING                  -> string_literal // String literals
+         | call                                    // Function call
+         | list_literal_rule                       // List literal
+
+// Operators
 ADD: "+"
 SUB: "-"
 MUL: "*"
 DIV: "/"
 
 // Function call structure: NAME ( [arguments] )
-call: NAME "(" [args] ")"
+// The [args] means the 'args' rule is optional (for calls like func())
+call: NAME "(" [args] ")"         -> func_call
 
 // Arguments list for function calls, comma-separated
-args: argument ("," argument)* [","] // Optional trailing comma
+// [","]? allows an optional optional trailing comma
+args: argument ("," argument)* [","]?
 
 // An argument can be a positional expression or a keyword argument
 ?argument: expr
          | keyword_argument
 
 // Keyword argument: name = expression
-keyword_argument: NAME "=" expr
+keyword_argument: NAME "=" expr    -> kw_arg
 
-// List literal: [ [expressions] ]
-// Allows any expression inside the list
-list: "[" [expr ("," expr)*] [","] "]"
-
-// Dictionary literal: { [key=value pairs] }
-// Keys are names, values are expressions
-dictionary: "{" [key_value_pair ("," key_value_pair)*] [","] "}"
-key_value_pair: NAME "=" expr
+// List literal rule: [element1, element2, ...]
+list_literal_rule: "[" [expr ("," expr)*] [","]? "]" -> list_literal
 
 // Token definitions imported from common Lark library
-%import common.INT
-%import common.CNAME          -> NAME         // Common Name (identifiers)
-%import common.ESCAPED_STRING -> STRING       // String literals ("..." or '...')
-%import common.SIGNED_NUMBER  -> NUMBER       // Numbers (integers, floats)
-
+%import common.CNAME -> NAME                 // For identifiers (variables, function names)
+%import common.ESCAPED_STRING -> STRING      // For "..." or '...' string literals
+%import common.SIGNED_NUMBER -> NUMBER       // For numbers, covers integers and floats
